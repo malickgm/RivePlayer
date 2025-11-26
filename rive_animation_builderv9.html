@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rive Animation Builder</title>
+  <script src="https://unpkg.com/@rive-app/canvas"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow-x: hidden;
+    }
+
+    .control-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 320px;
+      height: 100vh;
+      background: white;
+      box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+      overflow-y: auto;
+      z-index: 1000;
+      padding: 20px;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    }
+
+    .control-panel.open {
+      transform: translateX(0);
+    }
+
+    .toggle-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 1001;
+      font-size: 24px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      transition: transform 0.2s;
+    }
+
+    .toggle-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .section {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      transition: background 0.3s ease;
+    }
+
+    .section-content {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .rive-container {
+      position: relative;
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+      border: 2px dashed rgba(255,255,255,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    .rive-container.loaded {
+      background: transparent;
+      backdrop-filter: none;
+      border: none;
+    }
+
+    .rive-container:hover {
+      border-color: rgba(255,255,255,0.6);
+    }
+
+    .rive-container.loaded:hover {
+      border: none;
+    }
+
+    .rive-container canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .upload-placeholder {
+      text-align: center;
+      color: white;
+      padding: 40px;
+    }
+
+    .upload-placeholder input {
+      display: none;
+    }
+
+    .upload-btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 2px solid white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 10px;
+      transition: all 0.3s;
+    }
+
+    .upload-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .control-section {
+      margin-bottom: 25px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .control-section h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 10px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      transition: background 0.2s;
+    }
+
+    .btn:hover {
+      background: #1d4ed8;
+    }
+
+    .btn.danger {
+      background: #dc2626;
+    }
+
+    .btn.danger:hover {
+      background: #b91c1c;
+    }
+
+    .section-item {
+      background: #f9fafb;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+
+    .section-item:hover {
+      background: #f3f4f6;
+    }
+
+    .section-item.active {
+      border-color: #2563eb;
+      background: #eff6ff;
+    }
+
+    .color-picker {
+      width: 100%;
+      height: 40px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #6b7280;
+      margin-bottom: 6px;
+    }
+
+    input[type="number"], select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    .layout-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .remove-animation {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(220, 38, 38, 0.9);
+      color: white;
+      border: none;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      display: none;
+      z-index: 10;
+    }
+
+    .rive-container:hover .remove-animation {
+      display: block;
+    }
+
+    @media (max-width: 768px) {
+      .control-panel {
+        width: 100%;
+      }
+
+      .section {
+        padding: 20px;
+      }
+
+      .section-content {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="toggle-btn" onclick="togglePanel()">⚙️</button>
+
+  <div class="control-panel" id="controlPanel">
+    <h2 style="margin-bottom: 20px; color: #111827;">Section Builder</h2>
+    
+    <div class="control-section">
+      <button class="btn" onclick="addSection()">+ Add New Section</button>
+    </div>
+
+    <div class="control-section">
+      <h3>Sections</h3>
+      <div id="sectionList"></div>
+    </div>
+
+    <div class="control-section" id="sectionControls" style="display: none;">
+      <h3>Selected Section</h3>
+      
+      <label>Height (vh)</label>
+      <input type="number" id="sectionHeight" min="100" value="100" step="10" onchange="updateSectionHeight()">
+      
+      <label>Background Gradient</label>
+      <div class="layout-controls">
+        <input type="color" class="color-picker" id="gradColor1" value="#667eea" onchange="updateGradient()">
+        <input type="color" class="color-picker" id="gradColor2" value="#764ba2" onchange="updateGradient()">
+      </div>
+      
+      <label>Gradient Direction</label>
+      <select id="gradDirection" onchange="updateGradient()">
+        <option value="to right">Left to Right</option>
+        <option value="to left">Right to Left</option>
+        <option value="to bottom">Top to Bottom</option>
+        <option value="to top">Bottom to Top</option>
+        <option value="135deg">Diagonal ↘</option>
+        <option value="45deg">Diagonal ↗</option>
+      </select>
+
+      <label>Layout</label>
+      <select id="layoutMode" onchange="updateLayout()">
+        <option value="center">Center</option>
+        <option value="row">Side by Side</option>
+        <option value="column">Stacked</option>
+      </select>
+
+      <button class="btn" onclick="addAnimation()">+ Add Animation</button>
+      <button class="btn danger" onclick="removeSection()">Delete Section</button>
+    </div>
+
+    <div class="control-section" id="animationControls" style="display: none;">
+      <h3>Selected Animation</h3>
+      
+      <label>Width (%)</label>
+      <input type="number" id="animWidth" min="10" max="100" value="40" onchange="updateAnimationSize()">
+      
+      <label>Height (%)</label>
+      <input type="number" id="animHeight" min="10" max="100" value="40" onchange="updateAnimationSize()">
+      
+      <div id="riveProperties"></div>
+      
+      <button class="btn danger" onclick="removeAnimation()">Remove Animation</button>
+    </div>
+  </div>
+
+  <div id="sectionsContainer"></div>
+
+  <script>
+    let sections = [];
+    let currentSectionIndex = null;
+    let currentAnimationIndex = null;
+    let riveInstances = {};
+    let riveLoaded = false;
+
+    // Wait for Rive library to load
+    function checkRiveLoaded() {
+      if (typeof rive !== 'undefined') {
+        riveLoaded = true;
+        console.log('Rive library loaded successfully');
+      } else {
+        setTimeout(checkRiveLoaded, 100);
+      }
+    }
+    checkRiveLoaded();
+
+    function togglePanel() {
+      document.getElementById('controlPanel').classList.toggle('open');
+    }
+
+    function addSection() {
+      const section = {
+        id: Date.now(),
+        height: 100,
+        gradColor1: '#667eea',
+        gradColor2: '#764ba2',
+        gradDirection: 'to right',
+        layout: 'center',
+        animations: []
+      };
+      sections.push(section);
+      renderSections();
+      selectSection(sections.length - 1);
+    }
+
+    function renderSections() {
+      const container = document.getElementById('sectionsContainer');
+      const listContainer = document.getElementById('sectionList');
+      
+      container.innerHTML = '';
+      listContainer.innerHTML = '';
+
+      sections.forEach((section, index) => {
+        // Render section in main view
+        const sectionEl = document.createElement('div');
+        sectionEl.className = 'section';
+        sectionEl.id = `section-${section.id}`;
+        sectionEl.style.minHeight = `${section.height}vh`;
+        sectionEl.style.background = `linear-gradient(${section.gradDirection}, ${section.gradColor1}, ${section.gradColor2})`;
+        
+        const content = document.createElement('div');
+        content.className = 'section-content';
+        content.style.flexDirection = section.layout === 'column' ? 'column' : 'row';
+        content.style.justifyContent = section.layout === 'center' ? 'center' : 'space-evenly';
+
+        section.animations.forEach((anim, animIndex) => {
+          const animContainer = document.createElement('div');
+          animContainer.className = 'rive-container';
+          animContainer.style.width = `${anim.width}%`;
+          animContainer.style.height = `${anim.height}%`;
+          animContainer.id = `anim-${section.id}-${animIndex}`;
+          animContainer.onclick = () => selectAnimation(index, animIndex);
+
+          const removeBtn = document.createElement('button');
+          removeBtn.className = 'remove-animation';
+          removeBtn.innerHTML = '×';
+          removeBtn.onclick = (e) => {
+            e.stopPropagation();
+            currentSectionIndex = index;
+            currentAnimationIndex = animIndex;
+            removeAnimation();
+          };
+          animContainer.appendChild(removeBtn);
+
+          if (anim.src) {
+            const canvas = document.createElement('canvas');
+            canvas.id = `canvas-${section.id}-${animIndex}`;
+            animContainer.appendChild(canvas);
+            
+            // Load Rive animation - using the exact same approach as the documentation
+            setTimeout(() => {
+              if (typeof rive === 'undefined') {
+                console.error('Rive library not loaded yet');
+                animContainer.innerHTML = '<div class="upload-placeholder"><p style="color: white;">Loading Rive library...</p></div>';
+                // Try again after a delay
+                setTimeout(() => {
+                  if (typeof rive !== 'undefined') {
+                    renderSections();
+                  }
+                }, 1000);
+                return;
+              }
+              
+              try {
+                const r = new rive.Rive({
+                  src: anim.src,
+                  canvas: canvas,
+                  autoplay: true,
+                  stateMachines: anim.selectedStateMachine,
+                  animations: anim.selectedAnimation,
+                  onLoad: () => {
+                    r.resizeDrawingSurfaceToCanvas();
+                    
+                    // Remove placeholder styling
+                    animContainer.classList.add('loaded');
+                    
+                    // Extract available state machines and animations
+                    const stateMachineNames = r.stateMachineNames || [];
+                    const animationNames = r.animationNames || [];
+                    
+                    // Store in animation data
+                    sections[index].animations[animIndex].stateMachines = stateMachineNames;
+                    sections[index].animations[animIndex].animations = animationNames;
+                    
+                    // Get inputs for current state machine
+                    if (anim.selectedStateMachine && stateMachineNames.includes(anim.selectedStateMachine)) {
+                      const inputs = r.stateMachineInputs(anim.selectedStateMachine);
+                      sections[index].animations[animIndex].inputs = {};
+                      inputs.forEach(input => {
+                        sections[index].animations[animIndex].inputs[input.name] = {
+                          type: input.type,
+                          value: input.value
+                        };
+                      });
+                    }
+                    
+                    // Update controls if this animation is selected
+                    if (currentSectionIndex === index && currentAnimationIndex === animIndex) {
+                      updateRiveControls();
+                    }
+                  },
+                  onLoadError: (err) => {
+                    console.error('Error loading Rive animation:', err);
+                    animContainer.innerHTML = '<div class="upload-placeholder"><p style="color: white;">Error loading animation</p></div>';
+                  }
+                });
+                riveInstances[`${section.id}-${animIndex}`] = r;
+              } catch (err) {
+                console.error('Error creating Rive instance:', err);
+                animContainer.innerHTML = '<div class="upload-placeholder"><p style="color: white;">Error: ' + err.message + '</p></div>';
+              }
+            }, 100);
+          } else {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'upload-placeholder';
+            placeholder.innerHTML = `
+              <p style="margin-bottom: 10px;">📁</p>
+              <p>Drop .riv file here</p>
+              <input type="file" accept=".riv" onchange="handleFileUpload(event, ${index}, ${animIndex})">
+              <label class="upload-btn" onclick="this.previousElementSibling.click()">Choose File</label>
+            `;
+            animContainer.appendChild(placeholder);
+          }
+
+          content.appendChild(animContainer);
+        });
+
+        sectionEl.appendChild(content);
+        container.appendChild(sectionEl);
+
+        // Add to sidebar list
+        const listItem = document.createElement('div');
+        listItem.className = 'section-item';
+        listItem.innerHTML = `
+          <div style="font-weight: 600; margin-bottom: 4px;">Section ${index + 1}</div>
+          <div style="font-size: 12px; color: #6b7280;">${section.animations.length} animation(s)</div>
+        `;
+        listItem.onclick = () => selectSection(index);
+        listContainer.appendChild(listItem);
+      });
+
+      updateActiveSection();
+    }
+
+    function selectSection(index) {
+      currentSectionIndex = index;
+      currentAnimationIndex = null;
+      updateActiveSection();
+      
+      const section = sections[index];
+      document.getElementById('sectionHeight').value = section.height;
+      document.getElementById('gradColor1').value = section.gradColor1;
+      document.getElementById('gradColor2').value = section.gradColor2;
+      document.getElementById('gradDirection').value = section.gradDirection;
+      document.getElementById('layoutMode').value = section.layout;
+      
+      document.getElementById('sectionControls').style.display = 'block';
+      document.getElementById('animationControls').style.display = 'none';
+    }
+
+    function selectAnimation(sectionIndex, animIndex) {
+      currentSectionIndex = sectionIndex;
+      currentAnimationIndex = animIndex;
+      
+      const anim = sections[sectionIndex].animations[animIndex];
+      document.getElementById('animWidth').value = anim.width;
+      document.getElementById('animHeight').value = anim.height;
+      
+      document.getElementById('animationControls').style.display = 'block';
+      
+      updateRiveControls();
+    }
+
+    function updateRiveControls() {
+      if (currentSectionIndex === null || currentAnimationIndex === null) return;
+      
+      const anim = sections[currentSectionIndex].animations[currentAnimationIndex];
+      const container = document.getElementById('riveProperties');
+      
+      if (!anim.src) {
+        container.innerHTML = '';
+        return;
+      }
+      
+      let html = '';
+      
+      // State Machines dropdown
+      if (anim.stateMachines && anim.stateMachines.length > 0) {
+        html += '<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">';
+        html += '<label>State Machine</label>';
+        html += '<select id="stateMachineSelect" onchange="changeStateMachine(this.value)">';
+        html += '<option value="">None</option>';
+        anim.stateMachines.forEach(sm => {
+          const selected = sm === anim.selectedStateMachine ? 'selected' : '';
+          html += `<option value="${sm}" ${selected}>${sm}</option>`;
+        });
+        html += '</select>';
+        html += '</div>';
+        
+        // Show inputs for selected state machine
+        if (anim.selectedStateMachine && anim.inputs) {
+          html += '<div style="margin-top: 10px;">';
+          html += '<h4 style="font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 10px;">State Machine Inputs</h4>';
+          
+          Object.keys(anim.inputs).forEach(inputName => {
+            const input = anim.inputs[inputName];
+            html += `<label>${inputName}</label>`;
+            
+            if (input.type === 56) { // Boolean/Trigger
+              html += `<button class="btn" onclick="triggerInput('${inputName}')" style="margin-bottom: 10px;">Trigger ${inputName}</button>`;
+            } else if (input.type === 57) { // Number
+              html += `<input type="number" value="${input.value}" onchange="updateInputValue('${inputName}', parseFloat(this.value))" style="margin-bottom: 10px;">`;
+            }
+          });
+          html += '</div>';
+        }
+      }
+      
+      // Animations dropdown
+      if (anim.animations && anim.animations.length > 0) {
+        html += '<div style="margin-top: 15px;">';
+        html += '<label>Animation</label>';
+        html += '<select id="animationSelect" onchange="changeAnimation(this.value)">';
+        html += '<option value="">None</option>';
+        anim.animations.forEach(animName => {
+          const selected = animName === anim.selectedAnimation ? 'selected' : '';
+          html += `<option value="${animName}" ${selected}>${animName}</option>`;
+        });
+        html += '</select>';
+        html += '</div>';
+      }
+      
+      container.innerHTML = html;
+    }
+
+    function changeStateMachine(smName) {
+      if (currentSectionIndex === null || currentAnimationIndex === null) return;
+      
+      sections[currentSectionIndex].animations[currentAnimationIndex].selectedStateMachine = smName || null;
+      sections[currentSectionIndex].animations[currentAnimationIndex].selectedAnimation = null;
+      renderSections();
+    }
+
+    function changeAnimation(animName) {
+      if (currentSectionIndex === null || currentAnimationIndex === null) return;
+      
+      sections[currentSectionIndex].animations[currentAnimationIndex].selectedAnimation = animName || null;
+      sections[currentSectionIndex].animations[currentAnimationIndex].selectedStateMachine = null;
+      renderSections();
+    }
+
+    function triggerInput(inputName) {
+      if (currentSectionIndex === null || currentAnimationIndex === null) return;
+      
+      const section = sections[currentSectionIndex];
+      const key = `${section.id}-${currentAnimationIndex}`;
+      const riveInstance = riveInstances[key];
+      
+      if (riveInstance) {
+        const inputs = riveInstance.stateMachineInputs(section.animations[currentAnimationIndex].selectedStateMachine);
+        const input = inputs.find(i => i.name === inputName);
+        if (input) {
+          input.fire();
+        }
+      }
+    }
+
+    function updateInputValue(inputName, value) {
+      if (currentSectionIndex === null || currentAnimationIndex === null) return;
+      
+      const section = sections[currentSectionIndex];
+      const key = `${section.id}-${currentAnimationIndex}`;
+      const riveInstance = riveInstances[key];
+      
+      if (riveInstance) {
+        const inputs = riveInstance.stateMachineInputs(section.animations[currentAnimationIndex].selectedStateMachine);
+        const input = inputs.find(i => i.name === inputName);
+        if (input) {
+          input.value = value;
+        }
+      }
+      
+      // Update stored value
+      sections[currentSectionIndex].animations[currentAnimationIndex].inputs[inputName].value = value;
+    }
+
+    function updateActiveSection() {
+      document.querySelectorAll('.section-item').forEach((item, index) => {
+        item.classList.toggle('active', index === currentSectionIndex);
+      });
+    }
+
+    function addAnimation() {
+      if (currentSectionIndex === null) return;
+      
+      const section = sections[currentSectionIndex];
+      if (section.animations.length >= 2) {
+        alert('Maximum 2 animations per section');
+        return;
+      }
+      
+      section.animations.push({
+        src: null,
+        width: 40,
+        height: 40,
+        selectedStateMachine: null,
+        selectedAnimation: null,
+        stateMachines: [],
+        animations: [],
+        inputs: {}
+      });
+      renderSections();
+    }
+
+    function handleFileUpload(event, sectionIndex, animIndex) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      // Convert file to Data URL for Rive
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        sections[sectionIndex].animations[animIndex].src = e.target.result;
+        renderSections();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function updateSectionHeight() {
+      if (currentSectionIndex === null) return;
+      sections[currentSectionIndex].height = document.getElementById('sectionHeight').value;
+      renderSections();
+    }
+
+    function updateGradient() {
+      if (currentSectionIndex === null) return;
+      const section = sections[currentSectionIndex];
+      section.gradColor1 = document.getElementById('gradColor1').value;
+      section.gradColor2 = document.getElementById('gradColor2').value;
+      section.gradDirection = document.getElementById('gradDirection').value;
+      renderSections();
+    }
+
+    function updateLayout() {
+      if (currentSectionIndex === null) return;
+      sections[currentSectionIndex].layout = document.getElementById('layoutMode').value;
+      renderSections();
+    }
+
+    function updateAnimationSize() {
+      if (currentSectionIndex === null || currentAnimationIndex === null) return;
+      const anim = sections[currentSectionIndex].animations[currentAnimationIndex];
+      anim.width = document.getElementById('animWidth').value;
+      anim.height = document.getElementById('animHeight').value;
+      renderSections();
+    }
+
+    function removeAnimation() {
+      if (currentSectionIndex === null || currentAnimationIndex === null) return;
+      
+      const key = `${sections[currentSectionIndex].id}-${currentAnimationIndex}`;
+      if (riveInstances[key]) {
+        riveInstances[key].cleanup();
+        delete riveInstances[key];
+      }
+      
+      sections[currentSectionIndex].animations.splice(currentAnimationIndex, 1);
+      currentAnimationIndex = null;
+      document.getElementById('animationControls').style.display = 'none';
+      renderSections();
+    }
+
+    function removeSection() {
+      if (currentSectionIndex === null) return;
+      
+      // Cleanup Rive instances
+      const section = sections[currentSectionIndex];
+      section.animations.forEach((anim, index) => {
+        const key = `${section.id}-${index}`;
+        if (riveInstances[key]) {
+          riveInstances[key].cleanup();
+          delete riveInstances[key];
+        }
+      });
+      
+      sections.splice(currentSectionIndex, 1);
+      currentSectionIndex = null;
+      document.getElementById('sectionControls').style.display = 'none';
+      renderSections();
+    }
+
+    // Initialize with one section
+    addSection();
+  </script>
+</body>
+</html>
